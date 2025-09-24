@@ -1,155 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Auth Page</title>
+  <title>Auth Chat App</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
 </head>
-<body class="bg-gray-100 h-screen flex items-center justify-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-md bg-white shadow-lg rounded-xl p-6">
+    <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">Chat App</h1>
 
-  <div class="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
-    <h1 class="text-2xl font-bold text-center mb-6" id="formTitle">Login</h1>
+    <!-- ðŸ”¹ Tabs -->
+    <div class="flex mb-4 border-b">
+      <button id="tabLogin" class="w-1/2 py-2 text-center font-medium border-b-2 border-blue-600">Login</button>
+      <button id="tabRegister" class="w-1/2 py-2 text-center font-medium text-gray-500">Register</button>
+    </div>
 
-    <!-- LOGIN FORM -->
+    <!-- ðŸ”¹ Login Form -->
     <form id="loginForm" class="space-y-4">
-      <input type="email" id="loginEmail" placeholder="Email"
-        class="w-full border p-2 rounded" required />
-      <input type="password" id="loginPassword" placeholder="Password"
-        class="w-full border p-2 rounded" required />
-      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Login</button>
-      <p class="text-center text-sm text-gray-600">
-        Belum punya akun? <a href="#" id="showRegister" class="text-green-600">Daftar</a>
-      </p>
-      <p class="text-center text-sm text-gray-600">
-        Lupa password? <a href="#" id="showReset" class="text-green-600">Reset</a>
+      <input id="email" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-lg" required>
+      <input id="password" type="password" placeholder="Password" class="w-full px-3 py-2 border rounded-lg" required>
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg">Login</button>
+      <p class="text-center text-sm">
+        <a href="#" id="resetPassword" class="text-blue-500 hover:underline">Lupa password?</a>
       </p>
     </form>
 
-    <!-- REGISTER FORM -->
+    <!-- ðŸ”¹ Register Form -->
     <form id="registerForm" class="space-y-4 hidden">
-      <input type="text" id="regName" placeholder="Nama Lengkap"
-        class="w-full border p-2 rounded" required />
-      <input type="text" id="regUsername" placeholder="Username"
-        class="w-full border p-2 rounded" required />
-      <input type="email" id="regEmail" placeholder="Email"
-        class="w-full border p-2 rounded" required />
-      <input type="password" id="regPassword" placeholder="Password"
-        class="w-full border p-2 rounded" required />
-      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Daftar</button>
-      <p class="text-center text-sm text-gray-600">
-        Sudah punya akun? <a href="#" id="showLogin1" class="text-blue-600">Login</a>
-      </p>
-    </form>
-
-    <!-- RESET FORM -->
-    <form id="resetForm" class="space-y-4 hidden">
-      <input type="email" id="resetEmail" placeholder="Masukkan email"
-        class="w-full border p-2 rounded" required />
-      <button type="submit" class="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600">Kirim Reset Link</button>
-      <p class="text-center text-sm text-gray-600">
-        Kembali ke <a href="#" id="showLogin2" class="text-yellow-600">Login</a>
-      </p>
+      <input id="regName" type="text" placeholder="Nama Lengkap" class="w-full px-3 py-2 border rounded-lg" required>
+      <input id="regEmail" type="email" placeholder="Email" class="w-full px-3 py-2 border rounded-lg" required>
+      <input id="regPass" type="password" placeholder="Password" class="w-full px-3 py-2 border rounded-lg" required>
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded-lg">Daftar</button>
     </form>
   </div>
 
   <script>
-    //  Config Appwrite
+    // ðŸ”¹ Inisialisasi Appwrite
     const client = new Appwrite.Client()
-      .setEndpoint("https://cloud.appwrite.io/v1") // ganti kalo pake self-host
-      .setProject("68d2932c00121f4a3800");
+      .setEndpoint("https://fra.cloud.appwrite.io/v1") // ganti kalau pakai self-hosted
+      .setProject("68d2932c00121f4a3800"); // ganti dengan Project ID kamu
 
     const account = new Appwrite.Account(client);
-    const databases = new Appwrite.Databases(client);
 
-    const DATABASE_ID = "68d2955400134b4de466"; 
-    const PROFILES_COLLECTION = "profiles"; // pastikan nama/ID koleksi sesuai
-
-    // Toggle forms
+    // ðŸ”¹ Tab switching
+    const tabLogin = document.getElementById("tabLogin");
+    const tabRegister = document.getElementById("tabRegister");
     const loginForm = document.getElementById("loginForm");
     const registerForm = document.getElementById("registerForm");
-    const resetForm = document.getElementById("resetForm");
-    const formTitle = document.getElementById("formTitle");
 
-    document.getElementById("showRegister").onclick = () => {
-      loginForm.classList.add("hidden");
-      resetForm.classList.add("hidden");
+    tabLogin.addEventListener("click", () => {
+      loginForm.classList.remove("hidden");
+      registerForm.classList.add("hidden");
+      tabLogin.classList.add("border-blue-600", "text-blue-600");
+      tabRegister.classList.remove("border-blue-600", "text-blue-600");
+      tabRegister.classList.add("text-gray-500");
+    });
+
+    tabRegister.addEventListener("click", () => {
       registerForm.classList.remove("hidden");
-      formTitle.innerText = "Daftar";
-    };
-    document.getElementById("showLogin1").onclick = () => {
-      registerForm.classList.add("hidden");
-      resetForm.classList.add("hidden");
-      loginForm.classList.remove("hidden");
-      formTitle.innerText = "Login";
-    };
-    document.getElementById("showLogin2").onclick = () => {
-      registerForm.classList.add("hidden");
-      resetForm.classList.add("hidden");
-      loginForm.classList.remove("hidden");
-      formTitle.innerText = "Login";
-    };
-    document.getElementById("showReset").onclick = () => {
       loginForm.classList.add("hidden");
-      registerForm.classList.add("hidden");
-      resetForm.classList.remove("hidden");
-      formTitle.innerText = "Reset Password";
-    };
+      tabRegister.classList.add("border-blue-600", "text-blue-600");
+      tabLogin.classList.remove("border-blue-600", "text-blue-600");
+      tabLogin.classList.add("text-gray-500");
+    });
 
-    // Login
-    loginForm.onsubmit = async (e) => {
+    
+    //  Login
+loginForm.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  try {
+    await account.createEmailSession(email, password); //  pakai ini
+    window.location.href = "chat.html";
+  } catch (error) {
+    alert("Login gagal: " + error.message);
+  }
+});
+
+    // ðŸ”¹ Register
+    registerForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+      const name = document.getElementById("regName").value;
+      const email = document.getElementById("regEmail").value;
+      const pass = document.getElementById("regPass").value;
+
       try {
-        const email = document.getElementById("loginEmail").value;
-        const password = document.getElementById("loginPassword").value;
-        await account.createEmailPasswordSession(email, password);
-        window.location.href = "dashboard.html";
-      } catch (err) {
-        alert("Login gagal: " + err.message);
+        await account.create("unique()", email, pass, name);
+        alert("Registrasi berhasil, silakan login!");
+        tabLogin.click(); // otomatis balik ke tab login
+      } catch (error) {
+        alert("Registrasi gagal: " + error.message);
       }
-    };
+    });
 
-    // Register
-    registerForm.onsubmit = async (e) => {
-      e.preventDefault();
+    // ðŸ”¹ Reset password
+    document.getElementById("resetPassword").addEventListener("click", async () => {
+      const email = prompt("Masukkan email untuk reset password:");
+      if (!email) return;
+
       try {
-        const name = document.getElementById("regName").value.trim();
-        const username = document.getElementById("regUsername").value.trim();
-        const email = document.getElementById("regEmail").value.trim();
-        const password = document.getElementById("regPassword").value.trim();
-
-        // Buat akun
-        const user = await account.create("unique()", email, password, name);
-
-        // Login otomatis
-        await account.createEmailPasswordSession(email, password);
-
-        // Simpan ke collection profiles
-        await databases.createDocument(DATABASE_ID, PROFILES_COLLECTION, "unique()", {
-          userId: user.$id,
-          username: username,
-          name: name,
-          email: email
-        });
-
-        window.location.href = "dashboard.html";
-      } catch (err) {
-        alert("Register gagal: " + err.message);
+        await account.createRecovery(email, window.location.origin + "/reset.html");
+        alert("Link reset password telah dikirim ke email kamu.");
+      } catch (error) {
+        alert("Gagal reset password: " + error.message);
       }
-    };
-
-    // Reset password
-    resetForm.onsubmit = async (e) => {
-      e.preventDefault();
-      try {
-        const email = document.getElementById("resetEmail").value;
-        await account.createRecovery(email, "https://yourdomain.com/reset-success"); 
-        alert("Link reset dikirim ke email!");
-      } catch (err) {
-        alert("Reset gagal: " + err.message);
-      }
-    };
+    });
   </script>
 </body>
 </html>
