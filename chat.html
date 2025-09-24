@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Room</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col">
+
+  <!-- Header -->
+  <div class="bg-green-600 text-white p-4 flex justify-between items-center shadow">
+    <h1 class="text-lg font-bold">Chat Room</h1>
+    <button id="logoutBtn" class="bg-red-500 px-3 py-1 rounded">Logout</button>
+  </div>
+
+  <!-- Chat container -->
+  <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+
+  <!-- Input -->
+  <form id="chatForm" class="flex p-4 bg-white border-t">
+    <input id="messageInput" type="text" placeholder="Tulis pesan..." 
+      class="flex-1 border rounded-full px-4 py-2 mr-2 focus:outline-none focus:ring focus:ring-green-300" required />
+    <button class="bg-green-600 text-white px-4 py-2 rounded-full">Kirim</button>
+  </form>
+
+  <script>
+    // 🔹 Konfigurasi Appwrite
+    const client = new Appwrite.Client()
+      .setEndpoint("https://fra.cloud.appwrite.io/v1") // ganti kalau self-host
+      .setProject("68d2932c00121f4a3800");
+
+    const account = new Appwrite.Account(client);
+    const databases = new Appwrite.Databases(client);
+
+    const DATABASE_ID = "68d2955400134b4de466";   // ganti sesuai Appwrite
+    const COLLECTION_ID = "chatroomm";        // sesuai koleksi yang kamu buat
+
+    const messagesDiv = document.getElementById("messages");
+    const chatForm = document.getElementById("chatForm");
+    const messageInput = document.getElementById("messageInput");
+    const logoutBtn = document.getElementById("logoutBtn");
+
+    let currentUser = null;
+
+    // 🔹 Cek user login
+    async function getUser() {
+      try {
+        currentUser = await account.get();
+      } catch (err) {
+        window.location.href = "index.html"; // balik ke login kalau belum login
+      }
+    }
+    getUser();
+
+    // 🔹 Ambil pesan lama
+    async function loadMessages() {
+      try {
+        const res = await databases.listDocuments(DATABASE_ID, COLLECTION_ID, [
+          Appwrite.Query.orderAsc("$createdAt"),
+          Appwrite.Query.limit(50)
+        ]);
+        res.documents.forEach(doc => renderMessage(doc));
+      } catch (err) {
+        console.error("Gagal load pesan:", err.message);
+      }
+    }
+    loadMessages();
+
+    // 🔹 Realtime listener
+    client.subscribe([`databases.${DATABASE_ID}.collections.${COLLECTION_ID}.documents`], response => {
+      if (response.events.includes("databases.*.collections.*.documents.*.create")) {
+        renderMessage(response.payload);
+      }
+    });
+
+    // 🔹 Render pesan
+    function renderMessage(doc) {
+      const isMe = currentUser && doc.sender === currentUser.$id;
+
+      const msg = document.createElement("div");
+      msg.className = `flex ${isMe ? "justify-end" : "justify-start"}`;
+      msg.innerHTML = `
+        <div class="max-w-[75%] px-4 py-2 rounded-lg shadow 
+          ${isMe ? "bg-green-500 text-white rounded-br-none" : "bg-gray-200 text-gray-900 rounded-bl-none"}">
+          <div class="text-sm font-semibold">${doc.senderName}</div>
+          <div class="break-words">${doc.text}</div>
+          <div class="text-xs text-gray-300 mt-1 text-right">${new Date(doc.$createdAt).toLocaleTimeString()}</div>
+        </div>
+      `;
+      messagesDiv.appendChild(msg);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // 🔹 Kirim pesan
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!messageInput.value.trim()) return;
+
+      try {
+        await databases.createDocument(DATABASE_ID, COLLECTION_ID, "unique()", {
+          text: messageInput.value,
+          sender: currentUser.$id,
+          senderName: currentUser.name || currentUser.email
+        });
+        messageInput.value = "";
+      } catch (err) {
+        console.error("Gagal kirim pesan:", err.message);
+        alert("Pesan gagal dikirim: " + err.message);
+      }
+    });
+
+    // 🔹 Logout
+    logoutBtn.addEventListener("click", async () => {
+      await account.deleteSession("current");
+      window.location.href = "index.html";
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auth Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.0"></script>
+</head>
+<body class="bg-gray-100 h-screen flex items-center justify-center">
+
+  <div class="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
+    <h1 class="text-2xl font-bold text-center mb-6" id="formTitle">Login</h1>
+
+    <!-- LOGIN FORM -->
+    <form id="loginForm" class="space-y-4">
+      <input type="email" id="loginEmail" placeholder="Email"
+        class="w-full border p-2 rounded" required />
+      <input type="password" id="loginPassword" placeholder="Password"
+        class="w-full border p-2 rounded" required />
+      <button type="submit" class="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700">Login</button>
+      <p class="text-center text-sm text-gray-600">
+        Belum punya akun? <a href="#" id="showRegister" class="text-green-600">Daftar</a>
+      </p>
+      <p class="text-center text-sm text-gray-600">
+        Lupa password? <a href="#" id="showReset" class="text-green-600">Reset</a>
+      </p>
+    </form>
+
+    <!-- REGISTER FORM -->
+    <form id="registerForm" class="space-y-4 hidden">
+      <input type="text" id="regName" placeholder="Nama Lengkap"
+        class="w-full border p-2 rounded" required />
+      <input type="text" id="regUsername" placeholder="Username"
+        class="w-full border p-2 rounded" required />
+      <input type="email" id="regEmail" placeholder="Email"
+        class="w-full border p-2 rounded" required />
+      <input type="password" id="regPassword" placeholder="Password"
+        class="w-full border p-2 rounded" required />
+      <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700">Daftar</button>
+      <p class="text-center text-sm text-gray-600">
+        Sudah punya akun? <a href="#" id="showLogin1" class="text-blue-600">Login</a>
+      </p>
+    </form>
+
+    <!-- RESET FORM -->
+    <form id="resetForm" class="space-y-4 hidden">
+      <input type="email" id="resetEmail" placeholder="Masukkan email"
+        class="w-full border p-2 rounded" required />
+      <button type="submit" class="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600">Kirim Reset Link</button>
+      <p class="text-center text-sm text-gray-600">
+        Kembali ke <a href="#" id="showLogin2" class="text-yellow-600">Login</a>
+      </p>
+    </form>
+  </div>
+
+  <script>
+    //  Config Appwrite
+    const client = new Appwrite.Client()
+      .setEndpoint("https://cloud.appwrite.io/v1") // ganti kalo pake self-host
+      .setProject("68d2932c00121f4a3800");
+
+    const account = new Appwrite.Account(client);
+    const databases = new Appwrite.Databases(client);
+
+    const DATABASE_ID = "68d2955400134b4de466"; 
+    const PROFILES_COLLECTION = "profiles"; // pastikan nama/ID koleksi sesuai
+
+    // Toggle forms
+    const loginForm = document.getElementById("loginForm");
+    const registerForm = document.getElementById("registerForm");
+    const resetForm = document.getElementById("resetForm");
+    const formTitle = document.getElementById("formTitle");
+
+    document.getElementById("showRegister").onclick = () => {
+      loginForm.classList.add("hidden");
+      resetForm.classList.add("hidden");
+      registerForm.classList.remove("hidden");
+      formTitle.innerText = "Daftar";
+    };
+    document.getElementById("showLogin1").onclick = () => {
+      registerForm.classList.add("hidden");
+      resetForm.classList.add("hidden");
+      loginForm.classList.remove("hidden");
+      formTitle.innerText = "Login";
+    };
+    document.getElementById("showLogin2").onclick = () => {
+      registerForm.classList.add("hidden");
+      resetForm.classList.add("hidden");
+      loginForm.classList.remove("hidden");
+      formTitle.innerText = "Login";
+    };
+    document.getElementById("showReset").onclick = () => {
+      loginForm.classList.add("hidden");
+      registerForm.classList.add("hidden");
+      resetForm.classList.remove("hidden");
+      formTitle.innerText = "Reset Password";
+    };
+
+    // Login
+    loginForm.onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+        await account.createEmailPasswordSession(email, password);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        alert("Login gagal: " + err.message);
+      }
+    };
+
+    // Register
+    registerForm.onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const name = document.getElementById("regName").value.trim();
+        const username = document.getElementById("regUsername").value.trim();
+        const email = document.getElementById("regEmail").value.trim();
+        const password = document.getElementById("regPassword").value.trim();
+
+        // Buat akun
+        const user = await account.create("unique()", email, password, name);
+
+        // Login otomatis
+        await account.createEmailPasswordSession(email, password);
+
+        // Simpan ke collection profiles
+        await databases.createDocument(DATABASE_ID, PROFILES_COLLECTION, "unique()", {
+          userId: user.$id,
+          username: username,
+          name: name,
+          email: email
+        });
+
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        alert("Register gagal: " + err.message);
+      }
+    };
+
+    // Reset password
+    resetForm.onsubmit = async (e) => {
+      e.preventDefault();
+      try {
+        const email = document.getElementById("resetEmail").value;
+        await account.createRecovery(email, "https://yourdomain.com/reset-success"); 
+        alert("Link reset dikirim ke email!");
+      } catch (err) {
+        alert("Reset gagal: " + err.message);
+      }
+    };
+  </script>
+</body>
+</html>
